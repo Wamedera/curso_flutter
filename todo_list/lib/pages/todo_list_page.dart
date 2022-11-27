@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../repositories/todo_repository.dart';
 import '../widgets/todo_list_item.dart';
 import '../models/todo.dart';
 
@@ -11,10 +12,25 @@ class ToDoListPage extends StatefulWidget {
 
 class _ToDoListPageState extends State<ToDoListPage> {
   final TextEditingController todoController = TextEditingController();
+  final TodoRepository todoRepository = TodoRepository();
 
   List<Todo> todos = [];
+
   Todo? deletedTodo;
   int? deletedTodoPos;
+
+  String? errorText;
+
+  @override
+  void initState() {
+    super.initState();
+
+    todoRepository.getTodoList().then((value) {
+      setState(() {
+        todos = value;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +49,17 @@ class _ToDoListPageState extends State<ToDoListPage> {
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
                         labelText: 'Adicione uma Tarefa',
+                        labelStyle: TextStyle(
+                          color: Color(0xff00d7f3),
+                        ),
                         hintText: 'Ex.: Estudar Flutter',
+                        errorText: errorText,
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(0xff00d7f3),
+                            width: 2,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -43,14 +69,24 @@ class _ToDoListPageState extends State<ToDoListPage> {
                   ElevatedButton(
                     onPressed: () {
                       String text = todoController.text;
+
+                      if (text.isEmpty) {
+                        setState(() {
+                          errorText = 'Adicione o título!';
+                        });
+                        return;
+                      }
+
                       setState(() {
                         Todo newTodo = Todo(
                           title: text,
                           dateTime: DateTime.now(),
                         );
                         todos.add(newTodo);
+                        errorText = null;
                       });
                       todoController.clear();
+                      todoRepository.saveTodoList(todos);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xff00d7f3),
@@ -113,6 +149,7 @@ class _ToDoListPageState extends State<ToDoListPage> {
 
     setState(() {
       todos.remove(todo);
+      todoRepository.saveTodoList(todos);
     });
 
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -129,6 +166,7 @@ class _ToDoListPageState extends State<ToDoListPage> {
           onPressed: () {
             setState(() {
               todos.insert(deletedTodoPos!, deletedTodo!);
+              todoRepository.saveTodoList(todos);
             });
           },
         ),
@@ -174,5 +212,6 @@ class _ToDoListPageState extends State<ToDoListPage> {
     setState(() {
       todos.clear();
     });
+    todoRepository.saveTodoList(todos);
   }
 }
